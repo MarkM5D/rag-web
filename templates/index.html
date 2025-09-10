@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Web Uygulaması</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 380px;
+            min-width: 380px;
+            background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 25px;
+            box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            height: 100vh;
+            border-right: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Hide mobile logo on desktop */
+        .mobile-logo {
+            display: none;
+        }
+
+        .sidebar h2 {
+            color: #343a40;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: 600;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar .card {
+            background: #ffffff;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .sidebar .card h3 {
+            color: #343a40;
+            font-weight: 600;
+            margin-bottom: 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .sidebar .card p {
+            color: #6c757d;
+        }
+        
+        .main-content .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .upload-section {
+            text-align: center;
+        }
+
+        .mobile-upload-container {
+            display: none;
+        }
+
+        .drop-zone {
+            border: 2px dashed #ced4da;
+            border-radius: 15px;
+            padding: 35px 20px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #007bff;
+            background: #e7f3ff;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 123, 255, 0.2);
+        }
+
+        .drop-zone-content {
+            pointer-events: none;
+        }
+
+        .drop-zone i {
+            font-size: 3em;
+            color: #3498db;
+            margin-bottom: 15px;
+            display: block;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .drop-zone p {
+            color: #495057;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+
+        .drop-zone .file-size-info {
+            font-size: 0.85em;
+            color: #6c757d;
+            margin-top: 10px;
+        }
+
+        .file-info {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .selected-file-name {
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 250px;
+            margin: 0 auto 5px;
+        }
+
+        .selected-file-size {
+            font-size: 0.8em;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 120%;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+        }
+
+        .selected-file {
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.2) 0%, rgba(39, 174, 96, 0.15) 100%);
+            border: 2px solid #27ae60;
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin: 12px 0;
+            display: none;
+            color: #343a40;
+        }
+
+        .selected-file.show {
+            display: none;
+        }
+
+        .selected-file i {
+            color: #2ecc71;
+            margin-right: 10px;
+        }
+
+        .upload-btn {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .upload-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: #ccc;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 40px);
+            max-height: calc(100vh - 40px);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            min-height: 0;
+        }
+        
+        .chat-messages::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message.bot {
+            text-align: left;
+        }
+
+        .message-bubble {
+            display: inline-block;
+            padding: 18px 24px;
+            border-radius: 20px;
+            max-width: 75%;
+            word-wrap: break-word;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .message.user .message-bubble {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .message.bot .message-bubble {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .input-section {
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .query-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            outline: none;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .send-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .status.success {
+            background: #ffffff;
+            color: #0d5016;
+            border: 2px solid #4caf50;
+            font-weight: 700;
+            text-shadow: none;
+        }
+
+        .status.error {
+            background: rgba(244, 67, 54, 0.2);
+            color: #b71c1c;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            font-weight: 600;
+        }
+
+        .status.info {
+            background: rgba(33, 150, 243, 0.2);
+            color: #1565c0;
+            border: 1px solid rgba(33, 150, 243, 0.3);
+        }
+
+        .document-list {
+            margin-top: 20px;
+        }
+
+        .document-item {
+            background: #ffffff;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            font-size: 0.9em;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+        
+        .document-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+            background: #f8f9fa;
+            border-color: #dee2e6;
+        }
+        
+        .document-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .document-icon {
+            color: #e74c3c;
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        
+        .document-name {
+            font-weight: 600;
+            color: #343a40;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+        
+        .document-info {
+            font-size: 0.8em;
+            color: #6c757d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+        }
+        
+        .clear-btn {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+            display: block;
+            box-shadow: 0 3px 10px rgba(231, 76, 60, 0.3);
+        }
+
+        .clear-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(231, 76, 60, 0.4);
+            background: linear-gradient(45deg, #c0392b, #a93226);
+        }
+
+        .clear-confirm-buttons {
+            display: none;
+            margin-top: 15px;
+            gap: 10px;
+        }
+
+        .clear-confirm-buttons.show {
+            display: flex;
+        }
+
+        .confirm-btn {
+            flex: 1;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .confirm-yes {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            color: white;
+        }
+
+        /* GitHub Button Hover Effect */
+        .card a[href*="github"]:hover {
+            background: #1a1e22 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(36, 41, 46, 0.3);
+        }
+
+        /* Developer Card Styles - Minimal */
+        .developer-card {
+            margin-top: 20px;
+            padding: 15px;
+        }
+
+        .developer-card h3 {
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        .developer-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .developer-name {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #343a40;
+            margin: 0;
+        }
+
+        .github-btn-minimal {
+            display: inline-block;
+            padding: 6px 12px;
+            background: #24292e;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.8em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .github-btn-minimal:hover {
+            background: #1a1e22;
+            transform: translateY(-1px);
+            color: white;
+        }
+
+        .github-btn-minimal i {
+            margin-right: 5px;
+        }
+
+        .confirm-yes:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(244, 67, 54, 0.4);
+        }
+
+        .confirm-no {
+            background: linear-gradient(45deg, #6c757d, #5a6268);
+            color: white;
+        }
+
+        .confirm-no:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(108, 117, 125, 0.4);
+        }
+
+
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            flex-shrink: 0;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #667eea;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+
+
+        @media (max-width: 1200px) {
+            .sidebar {
+                width: 300px;
+                min-width: 300px;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 280px;
+                min-width: 280px;
+            }
+            
+            .main-content {
+                padding: 15px;
+            }
+            
+            .chat-messages {
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                height: 100vh;
+                overflow: hidden;
+            }
+            
+            .sidebar {
+                width: 100%;
+                min-width: unset;
+                height: 35vh;
+                max-height: 35vh;
+                overflow: hidden;
+                padding: 8px;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto 0.5fr 1fr;
+                gap: 4px;
+                background: #f8f9fa;
+            }
+            
+            .sidebar .card {
+                margin-bottom: 0;
+                padding: 8px;
+                flex-shrink: 1;
+                height: 100%;
+                max-height: none;
+                overflow: hidden;
+                border-radius: 8px;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+                background: white;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            /* Mobile logo area */
+            .mobile-logo {
+                grid-column: 1 / -1;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 8px;
+                border-radius: 8px;
+                text-align: center;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                font-weight: bold;
+                font-size: 1em;
+                height: 40px;
+                box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            }
+            
+            .mobile-logo i {
+                font-size: 1.2em;
+                animation: pulse 2s infinite;
+            }
+            
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+            }
+            
+            /* Show mobile logo, hide desktop title */
+            .mobile-logo {
+                display: flex !important;
+            }
+            
+            .sidebar h2 {
+                display: none;
+            }
+            
+            .sidebar h3 {
+                font-size: 0.9em;
+                margin-bottom: 6px;
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+            
+            .sidebar h3 i {
+                font-size: 0.8em;
+            }
+            
+            /* Compact mobile layouts */
+            .sidebar .card .upload-section,
+            .sidebar .card .mobile-upload-container {
+                margin-top: 2px;
+            }
+            
+            .sidebar .card .document-item {
+                padding: 4px 6px;
+                margin-bottom: 3px;
+                font-size: 0.7em;
+                border-radius: 4px;
+                background: #ffffff;
+                border: 1px solid #e9ecef;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            }
+            
+            /* İşlemler kutucuğu - "Henüz doküman yüklenmedi" metni */
+            .sidebar .card .document-list {
+                flex: 1;
+                overflow-y: auto;
+                margin-bottom: 4px;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-start;
+                min-height: 40px;
+                max-height: calc(100% - 40px);
+            }
+            
+            /* Mobilde clear butonun pozisyonunu ayarla */
+            .clear-btn {
+                margin-top: auto !important;
+                padding: 6px 12px !important;
+                font-size: 0.7em !important;
+                flex-shrink: 0;
+            }
+            
+            .sidebar .card .document-list p {
+                text-align: center;
+                margin: 0;
+                padding: 6px 4px;
+                font-size: 0.65em;
+                color: #6c757d;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex: 1;
+                min-height: 30px;
+            }
+            
+            .sidebar .card .document-name {
+                font-size: 0.65em;
+                line-height: 1.2;
+                font-weight: 600;
+                color: #343a40;
+                margin-bottom: 2px;
+            }
+            
+            .sidebar .card .document-info {
+                font-size: 0.55em;
+                color: #6c757d;
+            }
+            
+            .sidebar .card .document-header {
+                margin-bottom: 2px;
+            }
+            
+            .sidebar .card .document-icon {
+                font-size: 0.8em;
+                margin-right: 4px;
+            }
+            
+            /* Developer card optimization - Improved for mobile */
+            .developer-card {
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-start;
+                align-items: center;
+                height: 100%;
+                text-align: center;
+                padding: 8px !important;
+                gap: 4px;
+                margin-top: 0 !important;
+                margin-bottom: 0 !important;
+            }
+            
+            .developer-card h3 {
+                font-size: 0.85em !important;
+                margin-bottom: 4px !important;
+                margin-top: 0 !important;
+                text-align: left;
+                align-self: flex-start;
+                width: 100%;
+            }
+            
+            .developer-row {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 6px;
+                width: 100%;
+                flex: 1;
+                justify-content: center;
+                margin-top: 0;
+            }
+            
+            .developer-name {
+                font-size: 0.9em !important;
+                font-weight: 700;
+                color: #333;
+                text-align: center;
+                white-space: normal;
+                line-height: 1.2;
+                margin-bottom: 4px;
+            }
+            
+            .github-btn-minimal {
+                background: linear-gradient(45deg, #24292e, #1a1e22);
+                color: white;
+                border: none;
+                padding: 8px 12px;
+                border-radius: 8px;
+                text-decoration: none;
+                font-size: 0.75em;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 4px;
+                transition: all 0.3s ease;
+                font-weight: 600;
+                min-width: 70px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            }
+            
+            .github-btn-minimal:hover {
+                background: linear-gradient(45deg, #1a1e22, #0d1117);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            }
+            
+            /* PDF Yükle bölümü ultra kompakt tasarım */
+            .mobile-upload-container {
+                display: flex;
+                gap: 2px;
+                align-items: center;
+                margin-top: 2px;
+            }
+            
+            .mobile-file-select {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+            
+            .mobile-drop-zone {
+                border: 2px dashed rgba(102, 126, 234, 0.6);
+                border-radius: 6px;
+                padding: 4px;
+                background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(102, 126, 234, 0.05));
+                text-align: center;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                position: relative;
+                height: 55px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            }
+            
+            .mobile-drop-zone:hover {
+                border-color: #667eea;
+                background: rgba(102, 126, 234, 0.1);
+            }
+            
+            .mobile-drop-zone i {
+                font-size: 0.9em;
+                color: #667eea;
+                margin-bottom: 1px;
+                display: block;
+            }
+            
+            .mobile-drop-zone p {
+                font-size: 0.5em;
+                margin: 0;
+                color: #333;
+                line-height: 1.1;
+            }
+            
+            .mobile-upload-btn {
+                width: 50px;
+                height: 50px;
+                border-radius: 15px;
+                background: linear-gradient(45deg, #4CAF50, #45a049);
+                border: none;
+                color: white;
+                font-size: 0.7em;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+                gap: 1px;
+                flex-shrink: 0;
+                box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+            }
+            
+            .mobile-upload-btn:hover:not(:disabled) {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+            }
+            
+            .mobile-upload-btn:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+                background: #ccc;
+            }
+            
+            .mobile-upload-btn i {
+                font-size: 1.2em;
+            }
+            
+            .mobile-upload-btn span {
+                font-size: 0.7em;
+                font-weight: 600;
+            }
+            
+            .mobile-selected-file {
+                background: rgba(76, 175, 80, 0.1);
+                border: 1px solid #4CAF50;
+                padding: 8px 12px;
+                border-radius: 8px;
+                font-size: 0.8em;
+                display: none;
+            }
+            
+            .mobile-selected-file.show {
+                display: none;
+            }
+
+
+            
+            /* Gizle desktop elementleri mobilde */
+            .desktop-upload {
+                display: none !important;
+            }
+            
+            .mobile-upload-container {
+                display: flex !important;
+            }
+            
+            .main-content {
+                padding: 15px;
+                flex: 1;
+                min-height: 0;
+                height: 65vh;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .chat-container {
+                height: 100%;
+                max-height: none;
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .chat-messages {
+                padding: 15px;
+                margin-bottom: 15px;
+                flex: 1;
+                overflow-y: auto;
+            }
+            
+            .message-bubble {
+                max-width: 85%;
+                padding: 12px 16px;
+                font-size: 14px;
+            }
+            
+            .input-section {
+                gap: 8px;
+            }
+            
+            .query-input {
+                padding: 12px 16px;
+                font-size: 14px;
+            }
+            
+            .send-btn {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sidebar {
+                padding: 6px;
+                height: 38vh;
+                max-height: 38vh;
+                gap: 6px;
+                grid-template-rows: auto 0.5fr 1fr;
+            }
+            
+            .main-content {
+                height: 62vh;
+                padding: 10px;
+            }
+            
+            .sidebar .card {
+                margin-bottom: 0;
+                padding: 6px;
+            }
+            
+            .sidebar h3 {
+                font-size: 0.8em;
+                margin-bottom: 4px;
+            }
+            
+            .sidebar h3 i {
+                font-size: 0.7em;
+            }
+            
+            .mobile-upload-container {
+                gap: 2px;
+                margin-top: 2px;
+            }
+            
+            .mobile-drop-zone {
+                padding: 3px;
+                height: 42px;
+            }
+            
+            .mobile-drop-zone i {
+                font-size: 0.8em;
+                margin-bottom: 1px;
+            }
+            
+            .mobile-drop-zone p {
+                font-size: 0.45em;
+            }
+            
+            .mobile-upload-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 0.6em;
+            }
+            
+            .mobile-logo {
+                height: 35px;
+                font-size: 0.9em;
+                padding: 6px;
+            }
+            
+            .sidebar .card .document-item {
+                padding: 2px;
+                margin-bottom: 2px;
+            }
+            
+            .sidebar .card .document-name {
+                font-size: 0.6em;
+            }
+            
+            .sidebar .card .document-info {
+                font-size: 0.5em;
+            }
+            
+            /* Developer card for very small screens */
+            .developer-card {
+                padding: 6px !important;
+                gap: 4px;
+            }
+            
+            .developer-card h3 {
+                margin-top: 0 !important;
+                margin-bottom: 2px !important;
+            }
+            
+            .developer-name {
+                font-size: 0.85em !important;
+            }
+            
+            .github-btn-minimal {
+                padding: 6px 10px;
+                font-size: 0.7em;
+                min-width: 60px;
+            }
+            
+            .main-content {
+                height: 62vh;
+                padding: 10px;
+            }
+            
+            .chat-messages {
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+            
+            .mobile-upload-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 1em;
+            }
+            
+            .mobile-upload-btn i {
+                font-size: 1em;
+            }
+            
+            .mobile-upload-btn span {
+                font-size: 0.6em;
+            }
+            
+            .main-content {
+                padding: 8px;
+            }
+            
+            .message-bubble {
+                max-width: 90%;
+                padding: 10px 14px;
+                font-size: 13px;
+            }
+            
+            .document-item {
+                padding: 10px;
+            }
+            
+            .document-name {
+                font-size: 0.8em;
+            }
+            
+            .input-section {
+                gap: 6px;
+            }
+            
+            .query-input {
+                padding: 10px 14px;
+                font-size: 13px;
+            }
+            
+            .send-btn {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+        }
+        
+        /* Additional mobile optimizations */
+        @media (max-width: 768px) {
+            /* Hide desktop elements */
+            .desktop-upload {
+                display: none !important;
+            }
+            
+            .mobile-upload-container {
+                display: flex !important;
+            }
+            
+            /* Ensure cards fit perfectly */
+            .sidebar .card {
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
+            .sidebar .card * {
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2><i class="fas fa-robot"></i> RAG Sistemi</h2>
+        
+        <!-- Mobile Logo -->
+        <div class="mobile-logo">
+            <i class="fas fa-robot"></i>
+            <span>RAG Sistemi</span>
+        </div>
+
+        <!-- Geliştirici Bilgileri -->
+        <div class="card developer-card">
+            <h3><i class="fas fa-code"></i> Geliştirici</h3>
+            <div class="developer-row">
+                <span class="developer-name">Mehmet Salih Durdu</span>
+                <a href="https://github.com/MarkM5D" target="_blank" class="github-btn-minimal">
+                    <i class="fab fa-github"></i> Kodlar
+                </a>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3><i class="fas fa-upload"></i> PDF Yükle</h3>
+            
+            <!-- Desktop Upload Section -->
+            <div class="upload-section desktop-upload" style="margin-top: 15px;">
+                <div class="drop-zone" id="dropZone">
+                    <div class="drop-zone-content">
+                        <i class="fas fa-file-pdf"></i>
+                        <p><strong>PDF dosyanızı buraya sürükleyin</strong></p>
+                        <p>veya tıklayarak seçin</p>
+                        <div class="file-size-info">Maksimum dosya boyutu: 16MB</div>
+                    </div>
+                    <input type="file" id="pdfFile" class="file-input" accept=".pdf">
+                </div>
+                
+                <div class="selected-file" id="selectedFile">
+                    <i class="fas fa-check-circle"></i>
+                    <span id="fileName">Dosya seçildi</span>
+                </div>
+                
+                <button id="uploadBtn" class="upload-btn" disabled>
+                    <i class="fas fa-cloud-upload-alt"></i> Dosyayı Analiz Et
+                </button>
+            </div>
+            
+            <!-- Mobile Upload Section -->
+            <div class="mobile-upload-container">
+                <div class="mobile-file-select">
+                    <div class="mobile-drop-zone" id="mobileDropZone">
+                        <i class="fas fa-file-pdf"></i>
+                        <p><strong>PDF Seç</strong></p>
+                        <input type="file" id="mobilePdfFile" class="file-input" accept=".pdf">
+                    </div>
+                    <div class="mobile-selected-file" id="mobileSelectedFile">
+                        <i class="fas fa-check-circle"></i>
+                        <span id="mobileFileName">Dosya seçildi</span>
+                    </div>
+                </div>
+                <button id="mobileUploadBtn" class="mobile-upload-btn" disabled>
+                    <i class="fas fa-upload"></i>
+                    <span>Yükle</span>
+                </button>
+            </div>
+            
+            <div id="uploadStatus" style="margin-top: 15px;"></div>
+        </div>
+
+        <div class="card">
+            <h3><i class="fas fa-list"></i> İşlemler</h3>
+            <div class="document-list" id="documentList" style="margin-top: 15px;">
+                <p style="text-align: center; color: #6c757d;">Henüz doküman yüklenmedi</p>
+            </div>
+            <button id="clearBtn" class="clear-btn" style="display: none;">
+                <i class="fas fa-trash"></i> Tümünü Temizle
+            </button>
+            
+            <div id="clearConfirmButtons" class="clear-confirm-buttons">
+                <button id="confirmYes" class="confirm-btn confirm-yes">
+                    <i class="fas fa-check"></i> Evet
+                </button>
+                <button id="confirmNo" class="confirm-btn confirm-no">
+                    <i class="fas fa-times"></i> İptal
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3><i class="fas fa-info-circle"></i> Bilgi</h3>
+            <p style="font-size: 0.9em; color: #6c757d; line-height: 1.5; margin-top: 15px;">
+                PDF dosyanızı yükleyin ve sistem otomatik olarak içeriği analiz edecek. 
+                Daha sonra sağ taraftan sorularınızı sorabilirsiniz.
+            </p>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="card chat-container">
+            <h2><i class="fas fa-comments"></i> Soru & Cevap</h2>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot">
+                    <div class="message-bubble">
+                        Merhaba! RAG sistemine hoş geldiniz. Önce sol taraftan bir PDF dosyası yükleyin, sonra bu alanda sorularınızı sorabilirsiniz.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Cevap hazırlanıyor...</p>
+            </div>
+
+            <div class="input-section">
+                <input type="text" id="queryInput" class="query-input" 
+                       placeholder="Sorunuzu yazın..." disabled>
+                <button id="sendBtn" class="send-btn" disabled>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let documentsUploaded = false;
+
+        // DOM Elements
+        const pdfFile = document.getElementById('pdfFile');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const documentList = document.getElementById('documentList');
+        const clearBtn = document.getElementById('clearBtn');
+        const chatMessages = document.getElementById('chatMessages');
+        const queryInput = document.getElementById('queryInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const loading = document.getElementById('loading');
+        const dropZone = document.getElementById('dropZone');
+        const selectedFile = document.getElementById('selectedFile');
+        const fileName = document.getElementById('fileName');
+        const clearConfirmButtons = document.getElementById('clearConfirmButtons');
+        const confirmYes = document.getElementById('confirmYes');
+        const confirmNo = document.getElementById('confirmNo');
+        
+        // Mobile elements
+        const mobileDropZone = document.getElementById('mobileDropZone');
+        const mobilePdfFile = document.getElementById('mobilePdfFile');
+        const mobileUploadBtn = document.getElementById('mobileUploadBtn');
+        const mobileSelectedFile = document.getElementById('mobileSelectedFile');
+        const mobileFileName = document.getElementById('mobileFileName');
+
+        // Drag & Drop functionality
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type === 'application/pdf') {
+                    pdfFile.files = files;
+                    handleFileSelection(file);
+                } else {
+                    showStatus('Lütfen sadece PDF dosyası seçin!', 'error');
+                }
+            }
+        });
+
+        // File selection
+        pdfFile.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                handleFileSelection(this.files[0]);
+            }
+        });
+
+        function handleFileSelection(file, isMobile = false) {
+            if (isMobile) {
+                mobileUploadBtn.disabled = false;
+                mobileSelectedFile.classList.add('show');
+                mobileFileName.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                mobileDropZone.querySelector('p').innerHTML = '<strong>✅ Seçildi</strong>';
+            } else {
+                uploadBtn.disabled = false;
+                selectedFile.classList.add('show');
+                fileName.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                const allPs = dropZone.querySelectorAll('p');
+                allPs[0].innerHTML = '<strong>✅ PDF dosyası seçildi!</strong>';
+                allPs[1].style.display = 'none'; // "veya tıklayarak seçin" gizle
+                dropZone.querySelector('.file-size-info').style.display = 'none'; // "Maksimum dosya boyutu" gizle
+                
+                // Dosya bilgilerini ekle
+                let fileInfoDiv = dropZone.querySelector('.file-info');
+                if (!fileInfoDiv) {
+                    fileInfoDiv = document.createElement('div');
+                    fileInfoDiv.className = 'file-info';
+                    dropZone.querySelector('.drop-zone-content').appendChild(fileInfoDiv);
+                }
+                
+                const shortFileName = file.name.length > 30 ? file.name.substring(0, 30) + '...' : file.name;
+                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                fileInfoDiv.innerHTML = `<div class="selected-file-name">${shortFileName}</div><div class="selected-file-size">(${fileSize} MB)</div>`;
+            }
+        }
+
+        // Mobile file selection
+        mobileDropZone.addEventListener('click', function() {
+            mobilePdfFile.click();
+        });
+
+        mobilePdfFile.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                handleFileSelection(this.files[0], true);
+                // Sync with desktop input
+                pdfFile.files = this.files;
+            }
+        });
+
+        // Mobile upload button
+        mobileUploadBtn.addEventListener('click', function() {
+            if (mobilePdfFile.files.length > 0) {
+                uploadFile(mobilePdfFile.files[0], true);
+            }
+        });
+
+        // Upload PDF
+        uploadBtn.addEventListener('click', function() {
+            const file = pdfFile.files[0];
+            if (!file) return;
+            uploadFile(file, false);
+        });
+
+        async function uploadFile(file, isMobile = false) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            let progress = 0;
+            let progressInterval = null;
+
+            try {
+                // Button durumunu güncelle ve fake progress başlat
+                if (isMobile) {
+                    mobileUploadBtn.disabled = true;
+                    mobileUploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>%0</span>';
+                } else {
+                    uploadBtn.disabled = true;
+                    uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analiz Ediliyor... %0';
+                }
+
+                // Fake progress animation başlat
+                progressInterval = setInterval(() => {
+                    if (progress < 90) {
+                        progress += Math.random() * 15; // Random artış
+                        if (progress > 90) progress = 90; // 90'da durdur
+                        
+                        if (isMobile) {
+                            mobileUploadBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i><span>%${Math.floor(progress)}</span>`;
+                        } else {
+                            uploadBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Analiz Ediliyor... %${Math.floor(progress)}`;
+                        }
+                    }
+                }, 300);
+                
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                // Progress'i durdur
+                clearInterval(progressInterval);
+                progressInterval = null;
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // %100'e tamamla
+                    progress = 100;
+                    if (isMobile) {
+                        mobileUploadBtn.innerHTML = '<i class="fas fa-check"></i><span>%100</span>';
+                    } else {
+                        uploadBtn.innerHTML = '<i class="fas fa-check"></i> Tamamlandı %100';
+                    }
+
+                    // Başarılı yükleme
+                    documentsUploaded = true;
+                    queryInput.disabled = false;
+                    sendBtn.disabled = false;
+                    
+                    // UI güncellemeleri
+                    setTimeout(() => {
+                        loadDocuments();
+                        resetUploadUI(isMobile);
+                        // 2 saniye sonra buttonları resetle
+                        setTimeout(() => {
+                            resetUploadButtons(isMobile);
+                        }, 2000);
+                    }, 500);
+                    
+                } else {
+                    // Hata durumu
+                    showStatus(result.error || 'Upload hatası oluştu', 'error');
+                    resetUploadButtons(isMobile);
+                }
+                
+            } catch (error) {
+                console.error('Upload error details:', error);
+                
+                // Progress'i durdur
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressInterval = null;
+                }
+                
+                let errorMessage = 'Yükleme hatası';
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    errorMessage = 'Sunucuya bağlanılamadı. Lütfen internet bağlantınızı kontrol edin.';
+                } else if (error.message.includes('HTTP')) {
+                    errorMessage = `Sunucu hatası: ${error.message}`;
+                } else {
+                    errorMessage = `Hata: ${error.message}`;
+                }
+                
+                showStatus(errorMessage, 'error');
+                resetUploadButtons(isMobile);
+            }
+        }
+
+
+
+        function resetUploadUI(isMobile) {
+            if (isMobile) {
+                mobileSelectedFile.classList.remove('show');
+                mobileDropZone.querySelector('p').innerHTML = '<strong>PDF Seç</strong>';
+                mobilePdfFile.value = '';
+            } else {
+                selectedFile.classList.remove('show');
+                const allPs = dropZone.querySelectorAll('p');
+                allPs[0].innerHTML = '<strong>PDF dosyanızı buraya sürükleyin</strong>';
+                allPs[1].style.display = 'block';
+                allPs[1].innerHTML = 'veya tıklayarak seçin';
+                dropZone.querySelector('.file-size-info').style.display = 'block';
+                const fileInfo = dropZone.querySelector('.file-info');
+                if (fileInfo) fileInfo.remove();
+                pdfFile.value = '';
+            }
+        }
+
+        function resetUploadButtons(isMobile) {
+            if (isMobile) {
+                mobileUploadBtn.disabled = true;
+                mobileUploadBtn.innerHTML = '<i class="fas fa-upload"></i><span>Yükle</span>';
+            } else {
+                uploadBtn.disabled = true;
+                uploadBtn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Dosyayı Analiz Et';
+            }
+        }
+
+        // Send query
+        async function sendQuery() {
+            const query = queryInput.value.trim();
+            if (!query || !documentsUploaded) return;
+
+            // Add user message
+            addMessage(query, 'user');
+            queryInput.value = '';
+
+            // Show loading
+            loading.style.display = 'block';
+            sendBtn.disabled = true;
+
+            try {
+                const response = await fetch('/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ query })
+                });
+
+                const result = await response.json();
+
+                if (result.answer) {
+                    addMessage(result.answer, 'bot');
+                } else {
+                    addMessage(result.error || 'Bir hata oluştu', 'bot');
+                }
+            } catch (error) {
+                addMessage('Bağlantı hatası: ' + error.message, 'bot');
+            } finally {
+                loading.style.display = 'none';
+                sendBtn.disabled = false;
+            }
+        }
+
+        sendBtn.addEventListener('click', sendQuery);
+        queryInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendQuery();
+            }
+        });
+
+        // Clear documents - show confirmation buttons
+        clearBtn.addEventListener('click', function() {
+            clearBtn.style.display = 'none';
+            clearConfirmButtons.classList.add('show');
+        });
+
+        // Confirm clear - Yes
+        confirmYes.addEventListener('click', async function() {
+            try {
+                confirmYes.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Temizleniyor...';
+                confirmYes.disabled = true;
+
+                const response = await fetch('/clear', { method: 'POST' });
+                const result = await response.json();
+
+                if (result.success) {
+                    documentsUploaded = false;
+                    queryInput.disabled = true;
+                    sendBtn.disabled = true;
+                    documentList.innerHTML = '<p style="text-align: center; color: #28a745; padding: 20px; background: #d4edda; border-radius: 8px; border: 1px solid #c3e6cb;"><i class="fas fa-check-circle"></i> Tüm dokümanlar temizlendi</p>';
+                    
+                    // 5 saniye sonra mesajı kaldır
+                    setTimeout(() => {
+                        documentList.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 20px;">Henüz doküman yüklenmedi</p>';
+                    }, 5000);
+                    chatMessages.innerHTML = `
+                        <div class="message bot">
+                            <div class="message-bubble">
+                                Merhaba! RAG sistemine hoş geldiniz. Önce sol taraftan bir PDF dosyası yükleyin, sonra bu alanda sorularınızı sorabilirsiniz.
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Reset buttons
+                    resetClearButtons();
+                } else {
+                    showStatus(result.error || 'Temizleme hatası', 'error');
+                }
+            } catch (error) {
+                showStatus('Temizleme hatası: ' + error.message, 'error');
+            } finally {
+                confirmYes.innerHTML = '<i class="fas fa-check"></i> Evet, Temizle';
+                confirmYes.disabled = false;
+                resetClearButtons();
+            }
+        });
+
+        // Confirm clear - No (Cancel)
+        confirmNo.addEventListener('click', function() {
+            resetClearButtons();
+        });
+
+        function resetClearButtons() {
+            clearConfirmButtons.classList.remove('show');
+            // Doküman durumuna göre butonu ayarla
+            if (documentsUploaded) {
+                clearBtn.style.display = 'block';
+            } else {
+                clearBtn.style.display = 'none';
+            }
+        }
+
+        // Helper functions
+        function showStatus(message, type) {
+            uploadStatus.innerHTML = `<div class="status ${type}">${message}</div>`;
+            setTimeout(() => {
+                uploadStatus.innerHTML = '';
+            }, 5000);
+        }
+
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            messageDiv.innerHTML = `
+                <div class="message-bubble">
+                    ${text}
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function loadDocuments() {
+            try {
+                const response = await fetch('/documents');
+                const result = await response.json();
+
+                if (result.documents && Object.keys(result.documents).length > 0) {
+                    documentsUploaded = true;
+                    queryInput.disabled = false;
+                    sendBtn.disabled = false;
+                    
+                    let html = '';
+                    Object.values(result.documents).forEach(doc => {
+                        const uploadDate = new Date(doc.upload_time).toLocaleDateString('tr-TR');
+                        const uploadTime = new Date(doc.upload_time).toLocaleTimeString('tr-TR', {hour: '2-digit', minute:'2-digit'});
+                        
+                        html += `
+                            <div class="document-item">
+                                <div class="document-header">
+                                    <i class="fas fa-file-pdf document-icon"></i>
+                                    <div class="document-name">${doc.filename}</div>
+                                </div>
+                                <div class="document-info">
+                                    <span>${uploadDate} ${uploadTime}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    documentList.innerHTML = html;
+                    clearBtn.style.display = 'block';
+                } else {
+                    documentsUploaded = false;
+                    queryInput.disabled = true;
+                    sendBtn.disabled = true;
+                    documentList.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 20px;">Henüz doküman yüklenmedi</p>';
+                    clearBtn.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Doküman listesi yüklenemedi:', error);
+                documentsUploaded = false;
+                queryInput.disabled = true;
+                sendBtn.disabled = true;
+                documentList.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 20px;">Henüz doküman yüklenmedi</p>';
+                clearBtn.style.display = 'none';
+            }
+        }
+
+        // Initialize
+        loadDocuments();
+    </script>
+</body>
+</html>
