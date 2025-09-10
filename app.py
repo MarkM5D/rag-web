@@ -245,7 +245,19 @@ def index():
 
 @app.route('/health')
 def health():
-    return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
+    try:
+        return jsonify({
+            'status': 'healthy', 
+            'timestamp': datetime.now().isoformat(),
+            'port': os.environ.get('PORT', '10000'),
+            'environment': os.environ.get('FLASK_ENV', 'production')
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy', 
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 503
 
 @app.route('/upload', methods=['POST'])
 def upload_pdf():
@@ -398,14 +410,21 @@ def not_found(e):
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     
-    port = int(os.environ.get('PORT', 5000))
+    # Render.com için port ayarı (default 10000)
+    port = int(os.environ.get('PORT', 10000))
     debug = os.environ.get('FLASK_ENV') == 'development'
     
-    logger.info(f"Temiz RAG sistemi başlatılıyor - Port: {port}")
+    logger.info(f"🚀 RAG Sistemi başlatılıyor - Port: {port}")
+    logger.info(f"📡 Host: 0.0.0.0 - Environment: {'Development' if debug else 'Production'}")
     
-    app.run(
-        debug=debug,
-        host='0.0.0.0',
-        port=port,
-        threaded=True
-    )
+    # Production'da Gunicorn kullanılır, development'da Flask
+    if debug:
+        app.run(
+            debug=debug,
+            host='0.0.0.0',
+            port=port,
+            threaded=True
+        )
+    else:
+        # Production modunda bu mesajı göster
+        logger.info("🚀 Production modunda - Gunicorn tarafından yönetiliyor")
