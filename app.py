@@ -410,21 +410,17 @@ def not_found(e):
 if __name__ == '__main__':
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     
-    # Render.com için port ayarı (default 10000)
-    port = int(os.environ.get('PORT', 10000))
-    debug = os.environ.get('FLASK_ENV') == 'development'
+    # Localhost için port ayarı
+    port = int(os.environ.get('PORT', 5000))
+    debug = True  # Localhost için debug modunu zorla
     
     logger.info(f"🚀 RAG Sistemi başlatılıyor - Port: {port}")
-    logger.info(f"📡 Host: 0.0.0.0 - Environment: {'Development' if debug else 'Production'}")
+    logger.info(f"📡 Host: 127.0.0.1 - Environment: Development")
     
-    # Production'da Gunicorn kullanılır, development'da Flask
-    if debug:
-        app.run(
-            debug=debug,
-            host='0.0.0.0',
-            port=port,
-            threaded=True
-        )
-    else:
-        # Production modunda bu mesajı göster
-        logger.info("🚀 Production modunda - Gunicorn tarafından yönetiliyor")
+    # Flask development server'ı çalıştır
+    app.run(
+        debug=debug,
+        host='127.0.0.1',
+        port=port,
+        threaded=True
+    )
